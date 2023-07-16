@@ -40,7 +40,6 @@ parser.add_argument('--target_sigma', type=float, default=1e-1, help='The lower 
 parser.add_argument('--constraint_weight', type=float, default=1.0, help='Constraint weight')
 parser.add_argument('--tol', type=float, default=1, help='Tolerance for constraints')
 args = parser.parse_args()
-
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if use_cuda:
@@ -67,6 +66,10 @@ for it in range(args.n_valid):
 # Model and optimizer
 net = GCN(nclass=1, N=n, H=hidden)
 if use_cuda: net.cuda()
+
+# Open files for constraint accuracy
+
+con_acc_file = open('con_acc_output_file.txt', 'w')
 
 def initial_constriants():
     var_or = [None for i in range(num_cons)] # not a good method, update later
@@ -200,6 +203,8 @@ def train(epoch):
         # estimation
         train_loss += loss.item()
         total += 1
+
+        
         
         sys.stdout.write('\r')
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\t MSE Loss: %.4f, Constraint Loss: %.4f'
@@ -276,7 +281,8 @@ def test(val=True, e=None):
 
         total += 1
         constraint_correct += ans_res
-
+    # write accurency to file
+    con_acc_file.write('%.2f' % (constraint_correct / float(num_cons)))
     print('[Valid] Average error: %.4f MAE: %.4f Cons_Acc: %.2f%%' % (tot_err/float(total), tot_mae/float(total), constraint_correct/float(num_cons)))
 
     error = tot_err / float(total)
@@ -356,3 +362,4 @@ for epoch in range(start_epoch, start_epoch+num_epochs):
 print('best error and cons are {}, {}'.format(best_err, cons_acc))
 
 test(val=False)
+con_acc_file.close()
