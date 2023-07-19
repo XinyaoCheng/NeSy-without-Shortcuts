@@ -152,10 +152,10 @@ for batch_idx, (inputs, targets, index) in enumerate(testloader):
     correct += predicted.eq(targets.data).cpu().sum()
 
 # Save checkpoint when best model
-acc = 100.*float(correct)/total
-cons_acc1 = 100.*float(constraint_correct1)/constraint_num
-cons_acc2 = 100.*float(constraint_correct2)/constraint_num
-cons_acc = 100.*float(constraint_correct)/constraint_num
-total_acc = (acc) 
-print("\n| Test results #\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1+2/Cons_Acc: %.2f%%+%.2f%%/%.2f%%" %(loss.item(), acc, cons_acc1, cons_acc2, cons_acc))
+    acc = 100.*float(correct)/total
+    cons_acc1 = 100.*float(constraint_correct1)/constraint_num
+    cons_acc2 = 100.*float(constraint_correct2)/constraint_num
+    cons_acc = 100.*float(constraint_correct)/constraint_num
+    total_acc = (acc)
+    print("\n| Test results #\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1+2/Cons_Acc: %.2f%%+%.2f%%/%.2f%%" %(loss.item(), acc, cons_acc1, cons_acc2, cons_acc))
 
