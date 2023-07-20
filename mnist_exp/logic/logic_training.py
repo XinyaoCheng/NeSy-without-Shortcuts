@@ -356,7 +356,7 @@ def train(epoch):
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\tCE Loss: %.4f, Constraint Loss: %.4f Acc@1: %.3f%%'
                 %(epoch, num_epochs, batch_idx+1,
                     (len(train_lab_idx)//batch_size)+1, ce_loss, constraint_loss, 100.*float(correct)/total))
-        test(batch_idx);
+        test(epoch,batch_idx);
         sys.stdout.flush()
 
     if scheduler is not None:
@@ -402,7 +402,7 @@ def cons_sat(probs_u, probs_r):
     ans_sat2 = and_res2.satisfy(args.tol)
     return ans_sat1, ans_sat2
 
-def test(batch_idx):
+def test(epoch,batch_idx):
         global best_acc, best_model, best_tau, best_epoch
         net.eval()
         test_loss = 0
@@ -453,8 +453,8 @@ def test(batch_idx):
 
         # record the result
         with open("./log/my_log_{!s}.txt".format(file_name), "a") as f:
-            f.write("\n| iteration #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" % (
-            batch_idx, loss.item(), acc, cons_acc1, cons_acc2))
+            f.write("\nepoch #%d\titeration #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" % (
+            epoch, batch_idx, loss.item(), acc, cons_acc1, cons_acc2))
 # def test(epoch):
 #     global best_acc, best_model, best_tau, best_epoch
 #     net.eval()
