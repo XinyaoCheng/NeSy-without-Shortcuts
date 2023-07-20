@@ -356,7 +356,8 @@ def train(epoch):
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\tCE Loss: %.4f, Constraint Loss: %.4f Acc@1: %.3f%%'
                 %(epoch, num_epochs, batch_idx+1,
                     (len(train_lab_idx)//batch_size)+1, ce_loss, constraint_loss, 100.*float(correct)/total))
-        sys.stdout.flush()   
+        test();
+        sys.stdout.flush()
 
     if scheduler is not None:
         scheduler.step()
@@ -400,58 +401,111 @@ def cons_sat(probs_u, probs_r):
     ans_sat1 = or_res1.satisfy(args.tol)
     ans_sat2 = and_res2.satisfy(args.tol)
     return ans_sat1, ans_sat2
-        
-def test(epoch):
-    global best_acc, best_model, best_tau, best_epoch
-    net.eval()
-    test_loss = 0
-    correct = 0
-    constraint_correct1 = 0
-    constraint_correct2 = 0
-    constraint_num = 0
-    total = 0
-    for batch_idx, (inputs, targets, index) in enumerate(validloader):
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = Variable(inputs), Variable(targets)
-        outputs = net(inputs)
-        loss = criterion(outputs, targets)
-        probs = softmax(outputs)
 
-        ind = np.where(targets.cpu().detach().numpy() == 6)[0]
-        if len(ind) != 0:
-            probs_u = probs[ind,:]
-            index = index[ind]
-            inputs_r = [rotateset[i][0] for i in index]
-            inputs_r = torch.cat(inputs_r, dim=0).unsqueeze(1)
-            outputs_r = net(inputs_r)
-            probs_r = softmax(outputs_r)
-            ans_sat1, ans_sat2 = cons_sat(probs_u, probs_r)
-            constraint_correct1 += ans_sat1.sum()
-            constraint_correct2 += ans_sat2.sum()
-            constraint_num += len(ind)
+def test():
+        global best_acc, best_model, best_tau, best_epoch
+        net.eval()
+        test_loss = 0
+        correct = 0
+        constraint_correct1 = 0
+        constraint_correct2 = 0
+        constraint_num = 0
+        total = 0
+        for batch_idx, (inputs, targets, index) in enumerate(validloader):
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
+            inputs, targets = Variable(inputs), Variable(targets)
+            outputs = net(inputs)
+            loss = criterion(outputs, targets)
+            probs = softmax(outputs)
 
-        test_loss += loss.item()
-        _, predicted = torch.max(outputs.data, 1)
-        total += targets.size(0)
-        correct += predicted.eq(targets.data).cpu().sum()
+            ind = np.where(targets.cpu().detach().numpy() == 6)[0]
+            if len(ind) != 0:
+                probs_u = probs[ind, :]
+                index = index[ind]
+                inputs_r = [rotateset[i][0] for i in index]
+                inputs_r = torch.cat(inputs_r, dim=0).unsqueeze(1)
+                outputs_r = net(inputs_r)
+                probs_r = softmax(outputs_r)
+                ans_sat1, ans_sat2 = cons_sat(probs_u, probs_r)
+                constraint_correct1 += ans_sat1.sum()
+                constraint_correct2 += ans_sat2.sum()
+                constraint_num += len(ind)
 
-    # Save checkpoint when best model
-    acc = 100.*float(correct)/total
-    cons_acc1 = 100.*float(constraint_correct1)/constraint_num
-    cons_acc2 = 100.*float(constraint_correct2)/constraint_num
-    total_acc = (acc) 
-    print("\n| Validation Epoch #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" %(epoch, loss.item(), acc, cons_acc1, cons_acc2))
+            test_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += predicted.eq(targets.data).cpu().sum()
 
-    if total_acc > best_acc:
-        # print('| Saving Best model...\t\t\tTop1 = %.2f%%' %(acc))
-        best_model, best_tau = save(acc, _, net, [var_and, var_or], best=True)
-        best_epoch = epoch
-        best_acc = total_acc
-    
-    # record the result
-    with open("./log/log_{!s}.txt".format(file_name),"a") as f:
-        f.write("\n| Epoch #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" %(epoch, loss.item(), acc, cons_acc1, cons_acc2))
+        # Save checkpoint when best model
+        acc = 100. * float(correct) / total
+        cons_acc1 = 100. * float(constraint_correct1) / constraint_num
+        cons_acc2 = 100. * float(constraint_correct2) / constraint_num
+        total_acc = (acc)
+        print("\n| Validation Epoch #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" % (
+        epoch, loss.item(), acc, cons_acc1, cons_acc2))
+
+        if total_acc > best_acc:
+            # print('| Saving Best model...\t\t\tTop1 = %.2f%%' %(acc))
+            best_model, best_tau = save(acc, _, net, [var_and, var_or], best=True)
+            best_epoch = epoch
+            best_acc = total_acc
+
+        # record the result
+        with open("./log/my_log_{!s}.txt".format(file_name), "a") as f:
+            f.write("\n| iteration #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" % (
+            batch_idx, loss.item(), acc, cons_acc1, cons_acc2))
+# def test(epoch):
+#     global best_acc, best_model, best_tau, best_epoch
+#     net.eval()
+#     test_loss = 0
+#     correct = 0
+#     constraint_correct1 = 0
+#     constraint_correct2 = 0
+#     constraint_num = 0
+#     total = 0
+#     for batch_idx, (inputs, targets, index) in enumerate(validloader):
+#         if use_cuda:
+#             inputs, targets = inputs.cuda(), targets.cuda()
+#         inputs, targets = Variable(inputs), Variable(targets)
+#         outputs = net(inputs)
+#         loss = criterion(outputs, targets)
+#         probs = softmax(outputs)
+#
+#         ind = np.where(targets.cpu().detach().numpy() == 6)[0]
+#         if len(ind) != 0:
+#             probs_u = probs[ind,:]
+#             index = index[ind]
+#             inputs_r = [rotateset[i][0] for i in index]
+#             inputs_r = torch.cat(inputs_r, dim=0).unsqueeze(1)
+#             outputs_r = net(inputs_r)
+#             probs_r = softmax(outputs_r)
+#             ans_sat1, ans_sat2 = cons_sat(probs_u, probs_r)
+#             constraint_correct1 += ans_sat1.sum()
+#             constraint_correct2 += ans_sat2.sum()
+#             constraint_num += len(ind)
+#
+#         test_loss += loss.item()
+#         _, predicted = torch.max(outputs.data, 1)
+#         total += targets.size(0)
+#         correct += predicted.eq(targets.data).cpu().sum()
+#
+#     # Save checkpoint when best model
+#     acc = 100.*float(correct)/total
+#     cons_acc1 = 100.*float(constraint_correct1)/constraint_num
+#     cons_acc2 = 100.*float(constraint_correct2)/constraint_num
+#     total_acc = (acc)
+#     print("\n| Validation Epoch #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" %(epoch, loss.item(), acc, cons_acc1, cons_acc2))
+#
+#     if total_acc > best_acc:
+#         # print('| Saving Best model...\t\t\tTop1 = %.2f%%' %(acc))
+#         best_model, best_tau = save(acc, _, net, [var_and, var_or], best=True)
+#         best_epoch = epoch
+#         best_acc = total_acc
+#
+#     # record the result
+#     with open("./log/log_{!s}.txt".format(file_name),"a") as f:
+#         f.write("\n| Epoch #%d\t\t\tLoss: %.4f Acc@1: %.2f%% Cons_Acc1/2: %.2f%%/%.2f%%" %(epoch, loss.item(), acc, cons_acc1, cons_acc2))
 
 
 elapsed_time = 0
