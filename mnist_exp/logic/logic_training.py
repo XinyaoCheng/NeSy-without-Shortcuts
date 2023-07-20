@@ -356,7 +356,7 @@ def train(epoch):
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\tCE Loss: %.4f, Constraint Loss: %.4f Acc@1: %.3f%%'
                 %(epoch, num_epochs, batch_idx+1,
                     (len(train_lab_idx)//batch_size)+1, ce_loss, constraint_loss, 100.*float(correct)/total))
-        test(epoch,batch_idx);
+        test(epoch,batch_idx+1);
         sys.stdout.flush()
 
     if scheduler is not None:
@@ -517,8 +517,8 @@ print('| Logical Constraint = ' + str(args.constraint))
 print('| Whether truncate = ' + str(args.trun))
 
 # record the result
-with open("./log/log_{!s}.txt".format(file_name),"w") as f: 
-    f.write("Iteration: sgd_lr = %.4f adam_lr = %.4f" %(sgd_lr, adam_lr))
+# with open("./log/log_{!s}.txt".format(file_name),"w") as f:
+#     f.write("Iteration: sgd_lr = %.4f adam_lr = %.4f" %(sgd_lr, adam_lr))
 
 for epoch in range(start_epoch, start_epoch+num_epochs):
     if epoch == start_epoch and sgd_epochs != 0:
@@ -537,7 +537,7 @@ for epoch in range(start_epoch, start_epoch+num_epochs):
     acc = train(epoch)
     if epoch % 400 == 0:
         save(acc, epoch, net, [var_and, var_or])           
-    test(epoch)
+    # test(epoch)
 
     epoch_time = time.time() - start_time
     elapsed_time += epoch_time
