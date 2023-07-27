@@ -3,6 +3,7 @@ from json import dumps
 
 import torch
 
+sys.path.append('deepproblog-master/src')
 from deepproblog.dataset import DataLoader
 from deepproblog.engines import ApproximateEngine, ExactEngine
 from deepproblog.evaluate import get_confusion_matrix, get_fact_accuracy
@@ -65,7 +66,7 @@ model.add_tensor_source("test", MNIST_test)
 loader = DataLoader(train_set, 1, False)
 train = train_model(model, loader, 4, log_iter=100, profile=1)
 state = {'net': network}
-torch.save(state, "snapshot/net.pth")
+#torch.save(state, "snapshot/net.pth")
 
 # net = model.networks["mnist_net"]
 net = network.cuda()

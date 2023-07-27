@@ -3,6 +3,7 @@ from json import dumps
 
 import torch
 
+sys.path.append('deepproblog-master/src')
 from deepproblog.dataset import DataLoader
 from deepproblog.engines import ApproximateEngine, ExactEngine
 from deepproblog.evaluate import get_confusion_matrix, get_fact_accuracy
