@@ -63,7 +63,7 @@ model.add_tensor_source("train", MNIST_train)
 model.add_tensor_source("rot", MNIST_rotate)
 model.add_tensor_source("test", MNIST_test)
 
-loader = DataLoader(train_set, 300, False)
+loader = DataLoader(train_set, 1, False)
 train = train_model(model, loader, 4, log_iter=100, profile=1)
 state = {'net': network}
 #torch.save(state, "snapshot/net.pth")
