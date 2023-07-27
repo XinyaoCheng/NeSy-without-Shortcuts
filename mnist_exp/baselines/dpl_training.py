@@ -1,4 +1,5 @@
 import sys
+import os
 from json import dumps
 
 import torch
@@ -64,9 +65,10 @@ model.add_tensor_source("rot", MNIST_rotate)
 model.add_tensor_source("test", MNIST_test)
 
 loader = DataLoader(train_set, 1, False)
-train = train_model(model, loader, 4, log_iter=100, profile=1)
+train = train_model(model, loader, 2, log_iter=100, profile=1)
 state = {'net': network}
-#torch.save(state, "snapshot/net.pth")
+os.makedirs("snapshot", exist_ok=True)
+torch.save(state, "snapshot/net.pth")
 
 # net = model.networks["mnist_net"]
 net = network.cuda()
