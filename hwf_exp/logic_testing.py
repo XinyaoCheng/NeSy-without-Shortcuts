@@ -23,7 +23,7 @@ import torch.backends.cudnn as cudnn
 import time
 
 import sys
-sys.path.append('../../')
+sys.path.append('../')
 from logic_encoder import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR-100 Logic Training')
@@ -33,7 +33,7 @@ parser.add_argument('--data_used', default=1.00, type=float, help='percentage of
 parser.add_argument('--resume_from', type=str, default=None, help='Resume from checkpoint')
 parser.add_argument('--tol', type=float, default=1e-2, help='Tolerance for constraints')
 args = parser.parse_args()
-sys.path.append('../')
+sys.path.append('/')
 from config import *
 
 np.random.seed(args.seed)

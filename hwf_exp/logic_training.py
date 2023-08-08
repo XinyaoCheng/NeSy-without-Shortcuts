@@ -5,10 +5,10 @@ from NN_AOG import NNAOG
 import torch.nn.functional as F
 
 import sys
-sys.path.append('../')
+sys.path.append('/')
 from config import *
 
-sys.path.append('../../')
+sys.path.append('../')
 from logic_encoder import *
 
 # Dataloader
