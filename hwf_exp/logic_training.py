@@ -333,6 +333,8 @@ if args.constraint == True:
     var_or, var_and = initial_constriants()
     if use_cuda:
         # device = torch.device('cuda')
+
+        device = torch.device("mps")
         var_or = torch.tensor(var_or, requires_grad=True, device='cuda')
         var_and = torch.tensor(var_and, requires_grad=True, device='cuda')
         sigma = torch.tensor(args.z_sigma, device='cuda')

@@ -15,7 +15,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from __future__ import unicode_literals
-from . import Infinite
+from utils.progress.progress import Infinite
 from .helpers import WriteMixin
 
 

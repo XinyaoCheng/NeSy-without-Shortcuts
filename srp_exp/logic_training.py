@@ -13,13 +13,16 @@ import random
 
 import os
 import sys
+
 sys.path.append('pygcn/pygcn')
 from utils import load_data, accuracy
 from layers import GraphConvolution
 from graphs import Graph
+
 sys.path.append('../../')
 
 import sys
+
 sys.path.append('../')
 from config import *
 
@@ -40,6 +43,7 @@ parser.add_argument('--target_sigma', type=float, default=1e-1, help='The lower 
 parser.add_argument('--constraint_weight', type=float, default=1.0, help='Constraint weight')
 parser.add_argument('--tol', type=float, default=1, help='Tolerance for constraints')
 args = parser.parse_args()
+
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if use_cuda:
@@ -50,30 +54,27 @@ if use_cuda:
 print('Generating train set...')
 train_graphs, valid_graphs, test_graphs = [], [], []
 for it in range(args.n_train):
-    m = np.random.randint(n-1, int(n*(n-1)/2+1))
+    m = np.random.randint(n - 1, int(n * (n - 1) / 2 + 1))
     train_graphs.append(Graph.gen_random_graph(n, m))
 
 print('Generating valid set...')
 for it in range(args.n_valid):
-    m = np.random.randint(n-1, int(n*(n-1)/2+1))
+    m = np.random.randint(n - 1, int(n * (n - 1) / 2 + 1))
     valid_graphs.append(Graph.gen_random_graph(n, m))
 
 print('Generating test set...')
 for it in range(args.n_valid):
-    m = np.random.randint(n-1, int(n*(n-1)/2+1))
+    m = np.random.randint(n - 1, int(n * (n - 1) / 2 + 1))
     test_graphs.append(Graph.gen_random_graph(n, m))
 
 # Model and optimizer
 net = GCN(nclass=1, N=n, H=hidden)
 if use_cuda: net.cuda()
 
-# Open files for constraint accuracy
-
-con_acc_file = open('con_acc_output_file.txt', 'w')
 
 def initial_constriants():
-    var_or = [None for i in range(num_cons)] # not a good method, update later
-    var_and = [None for i in range(num_cons)] # not a good method, update later
+    var_or = [None for i in range(num_cons)]  # not a good method, update later
+    var_and = [None for i in range(num_cons)]  # not a good method, update later
     net.eval()
 
     for batch_idx, g in enumerate(train_graphs):
@@ -81,7 +82,7 @@ def initial_constriants():
             adj = torch.FloatTensor(g.input)
             if use_cuda:
                 adj = adj.cuda()
-        
+
         out = net(adj)
         n_u = 1
         # constraint_loss = 0
@@ -90,15 +91,14 @@ def initial_constriants():
                 cons = []
                 for k in range(g.n):
                     adj_tmp = adj.clone()
-                    adj_tmp = adj_tmp[[0,k],:]
-                    adj_tmp = adj_tmp[:, [0,k]]
+                    adj_tmp = swap(adj_tmp, 0, k)
                     temp_out = net(adj_tmp).clone().detach()
                     for i in range(out.shape[0]):
                         if i == k:
-                            eq_res = EQ(out[i], temp_out[i]) # snote i=k
+                            eq_res = EQ(out[i], temp_out[i])  # snote i=k
                             cons.append(eq_res)
                         else:
-                            leq_res = LE(out[i], out[k]+temp_out[i]) 
+                            leq_res = LE(out[i], out[k] + temp_out[i])
                             cons.append(leq_res)
                 and_res = And(cons)
                 if var_and[batch_idx] is None:
@@ -107,32 +107,34 @@ def initial_constriants():
                     var_and[batch_idx] = np.append(var_and[batch_idx], and_res.tau.numpy())
     return var_or, var_and
 
+
 def cons_loss(outputs, index, n_u):
     out, temp_out, k = outputs
     constraint_loss = 0
     cons = []
     for i in range(out.shape[0]):
         if i == k:
-            eq_res = EQ(out[i], temp_out[i]) # snote i=k
+            eq_res = EQ(out[i], temp_out[i])  # snote i=k
             cons.append(eq_res)
         else:
-            leq_res = LE(out[i], out[k]+temp_out[i]) 
+            leq_res = LE(out[i], out[k] + temp_out[i])
             cons.append(leq_res)
         # and_res = BatchAnd(cons, 1, var_and[index])
         and_res = And(cons, tau=var_and[index])
     hwx_loss = and_res.encode()
-    if args.trun == True: 
+    if args.trun == True:
         # maximum likelihood of truncated gaussians
         xi = (0 - hwx_loss) / args.z_sigma
-        over = - 0.5 * xi.square() 
+        over = - 0.5 * xi.square()
         tmp = torch.erf(xi / np.sqrt(2))
-        under = torch.log(1 - tmp) 
+        under = torch.log(1 - tmp)
         loss = -(over - under).mean()
-        constraint_loss += loss     
+        constraint_loss += loss
     else:
         constraint_loss += hwx_loss.square().mean() / np.square(args.target_sigma)
     return constraint_loss, hwx_loss.detach().cpu().numpy()
-        
+
+
 def train(epoch):
     tot_err, tot_dl2_loss = 0, 0
     idx = np.arange(len(train_graphs))
@@ -173,7 +175,7 @@ def train(epoch):
             # var_or.requires_grad = True
             var_and.requires_grad = True
         else:
-            constraint_loss = 0    
+            constraint_loss = 0
 
         optim_w.zero_grad()
         dist = torch.FloatTensor([g.p[0, i] for i in range(g.n)])
@@ -182,7 +184,7 @@ def train(epoch):
 
         err = torch.mean((dist - out) * (dist - out))
         tot_err += err.detach()
-        
+
         if args.constraint == True:
             constraint_loss = 0
             hwx_loss = 0
@@ -198,19 +200,17 @@ def train(epoch):
         else:
             loss = err
         loss.backward()  # Backward Propagation
-        optim_w.step() # Optimizer update
+        optim_w.step()  # Optimizer update
 
         # estimation
         train_loss += loss.item()
         total += 1
 
-        
-        
         sys.stdout.write('\r')
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\t MSE Loss: %.4f, Constraint Loss: %.4f'
-                %(epoch, num_epochs, i+1,
-                    (len(train_graphs)//1)+1, tot_err/total, constraint_loss))
-        sys.stdout.flush()   
+                         % (epoch, num_epochs, i + 1,
+                            (len(train_graphs) // 1) + 1, tot_err / total, constraint_loss))
+        sys.stdout.flush()
 
     if scheduler is not None:
         scheduler.step()
@@ -223,24 +223,26 @@ def train(epoch):
         sigma = torch.tensor(np.square(error))
         sigma = torch.clamp(sigma, min=args.target_sigma, max=args.z_sigma)
         args.z_sigma = sigma
-        print('\n Logic Error: %.3f, Update sigma: %.2f' %(error, sigma.detach().cpu().numpy()))
+        print('\n Logic Error: %.3f, Update sigma: %.2f' % (error, sigma.detach().cpu().numpy()))
 
-    return 100.*float(correct)/total
+    return 100. * float(correct) / total
+
 
 def cons_sat(output, index):
     out, temp_out, k = output
     cons = []
     for i in range(out.shape[0]):
         if i == k:
-            eq_res = EQ(out[i], temp_out[i]) # snote i=k
+            eq_res = EQ(out[i], temp_out[i])  # snote i=k
             cons.append(eq_res)
         else:
-            leq_res = LE(out[i], out[k]+temp_out[i]) 
+            leq_res = LE(out[i], out[k] + temp_out[i])
             cons.append(leq_res)
         # and_res = BatchAnd(cons, 1, var_and[index])
         and_res = And(cons)
     ans_sat = and_res.satisfy(args.tol)
     return ans_sat
+
 
 def test(val=True, e=None):
     global best_err
@@ -266,10 +268,9 @@ def test(val=True, e=None):
             dist = dist.cuda()
 
         err = torch.mean((dist - out) * (dist - out))
-        mae = torch.mean((dist-out).abs())
+        mae = torch.mean((dist - out).abs())
         tot_err += err
         tot_mae += mae
-
 
         for k in range(1, g.n):
             adj_tmp = adj.clone()
@@ -281,24 +282,25 @@ def test(val=True, e=None):
 
         total += 1
         constraint_correct += ans_res
-    # write accurency to file
-    con_acc_file.write('%.2f' % (constraint_correct / float(num_cons)))
-    print('[Valid] Average error: %.4f MAE: %.4f Cons_Acc: %.2f%%' % (tot_err/float(total), tot_mae/float(total), constraint_correct/float(num_cons)))
+
+    print('[Valid] Average error: %.4f MAE: %.4f Cons_Acc: %.2f%%' % (
+    tot_err / float(total), tot_mae / float(total), constraint_correct / float(num_cons)))
 
     error = tot_err / float(total)
     if error < best_err:
         best_err = error
-        cons_acc = constraint_correct/float(num_cons)
+        cons_acc = constraint_correct / float(num_cons)
         save(error, '0', net, [var_and, var_or], best=True)
+
 
 def save(acc, e, net, tau, best=False):
     tau_and, tau_or = tau
     state = {
-            'net': net,
-            'acc': acc,
-            'epoch': epoch,
-            'tau_and': tau_and,
-            'tau_or': tau_or,
+        'net': net,
+        'acc': acc,
+        'epoch': epoch,
+        'tau_and': tau_and,
+        'tau_or': tau_or,
     }
     if not os.path.isdir('checkpoint'):
         os.mkdir('checkpoint')
@@ -310,6 +312,7 @@ def save(acc, e, net, tau, best=False):
         save_point = './checkpoint/' + file_name + '_' + str(e) + '_' + '.t7'
     torch.save(state, save_point)
     return net, tau
+
 
 num_cons = len(train_graphs)
 
@@ -331,7 +334,7 @@ else:
     var_and = None
 
 # acc, sym_acc = evaluate(model, eval_dataloader)
-for epoch in range(start_epoch, start_epoch+num_epochs):
+for epoch in range(start_epoch, start_epoch + num_epochs):
     if epoch == start_epoch and sgd_epochs != 0:
         lr = sgd_lr
         optim_w = optim.SGD(net.parameters(), lr=lr)
@@ -344,22 +347,21 @@ for epoch in range(start_epoch, start_epoch+num_epochs):
         scheduler = None
         # update tau_lr
         tau_lr = lr_adapt(tau_lr, epoch)
-    
+
     start_time = time.time()
 
     acc = train(epoch)
     if epoch % 100 == 0:
         if args.constraint == False:
             save(acc, epoch, net, [None, None])
-        else:           
-            save(acc, epoch, net, [var_and, var_or])           
+        else:
+            save(acc, epoch, net, [var_and, var_or])
     test(epoch)
 
     epoch_time = time.time() - start_time
     elapsed_time += epoch_time
-    print('| Elapsed time : %d:%02d:%02d'  %(get_hms(elapsed_time)))
+    print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
 
 print('best error and cons are {}, {}'.format(best_err, cons_acc))
 
 test(val=False)
-con_acc_file.close()

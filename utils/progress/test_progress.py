@@ -5,12 +5,12 @@ from __future__ import print_function
 import random
 import time
 
-from progress.bar import (Bar, ChargingBar, FillingSquaresBar,
-                          FillingCirclesBar, IncrementalBar, PixelBar,
-                          ShadyBar)
-from progress.spinner import (Spinner, PieSpinner, MoonSpinner, LineSpinner,
-                              PixelSpinner)
-from progress.counter import Counter, Countdown, Stack, Pie
+from utils.progress.progress import (Bar, ChargingBar, FillingSquaresBar,
+                                     FillingCirclesBar, IncrementalBar, PixelBar,
+                                     ShadyBar)
+from utils.progress.progress import (Spinner, PieSpinner, MoonSpinner, LineSpinner,
+                                     PixelSpinner)
+from utils.progress.progress import Counter, Countdown, Stack, Pie
 
 
 def sleep():

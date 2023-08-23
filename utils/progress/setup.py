@@ -2,8 +2,7 @@
 
 from setuptools import setup
 
-import progress
-
+from utils.progress import progress
 
 setup(
     name='progress',
